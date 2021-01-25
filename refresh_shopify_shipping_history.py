@@ -1,5 +1,5 @@
-import shopify
 import time
+import shopify
 
 # 获取shopify的验证session
 session = shopify.Session('shopcider.myshopify.com', '2020-10', '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')

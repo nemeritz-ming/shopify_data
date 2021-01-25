@@ -14,11 +14,6 @@ session = shopify.Session('shopcider.myshopify.com', '2020-10', 'shppa_6d7baa080
 # 激活session
 shopify.ShopifyResource.activate_session(session)
 
-# 判断是否获取到物流信息
-f_order = None
-
-# 建立list存储更新的order_id
-need_modify_list = []
 # 获取当前时间(北京时间)
 cur_date = datetime.utcnow().replace(tzinfo=pytz.utc)
 localDatetime = cur_date.astimezone(pytz.timezone('Asia/Shanghai'))
