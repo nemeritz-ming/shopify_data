@@ -1,0 +1,113 @@
+import requests
+import time
+import json
+from urllib.parse import urlparse
+from datetime import datetime, timedelta
+import datetime as dt
+import pytz
+
+# 获取当前时间(北京时间)
+cur_date = datetime.utcnow().replace(tzinfo=pytz.utc)
+localDatetime = cur_date.astimezone(pytz.timezone('Asia/Shanghai'))
+
+# 需要更新的时间应该是北京时间的昨天一整天
+updated_at_min = localDatetime - timedelta(days=1)
+# 设置更新时间的范围
+Min = dt.datetime(updated_at_min.year, updated_at_min.month, updated_at_min.day)
+Max = Min + timedelta(days=1)
+# 设置时区
+tzObject = dt.timezone(dt.timedelta(hours=-8), name="CST")
+
+# 改为ISO 8601 时间格式
+cstTimeMin = Min.replace(tzinfo=tzObject)
+cstTimeMax = Max.replace(tzinfo=tzObject)
+min_data = cstTimeMin.isoformat('T', 'seconds')
+max_data = cstTimeMax.isoformat('T', 'seconds')
+print(min_data)
+print(max_data)
+
+shipping_status = ['shipped', 'partial']
+orders = None
+for ship_status in shipping_status:
+    order_url = 'https://cbc3e9686911d1cadbce71005e884660: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@shopcider.myshopify.com/admin/api/2020-10/orders.json?fulfillment_status={0}&status=any&created_at_min={1}&created_at_max={2}&limit=10'.format(ship_status, min_data, max_data)
+    print(order_url)
+    while True:
+        get_order_num = 0
+        while True:
+            if get_order_num >= 5:
+                break
+            try:
+                time.sleep(3)
+                orders = requests.get(order_url, timeout=300)
+                break
+            except Exception as e:
+                print(e)
+                time.sleep(5)
+                get_order_num += 1
+                continue
+        if orders is None:
+            continue
+        for order in orders.json()['orders']:
+            order_id = order['id']
+            print(order_id)
+            shipping_url = 'https://cbc3e9686911d1cadbce71005e884660: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@shopcider.myshopify.com/admin/api/2021-01/orders/{}/fulfillments.json'.format(str(order_id))
+            get_ship_num = 0
+            while True:
+                if get_ship_num >= 5:
+                    break
+                try:
+                    time.sleep(3)
+                    shipping = requests.get(shipping_url, timeout=120)
+                    break
+                except Exception as e:
+                    print(e)
+                    time.sleep(5)
+                    get_ship_num += 1
+                    continue
+            total_shipping = shipping.json()['fulfillments'] if 'fulfillments' in shipping.json() else []
+            for single_shipping in total_shipping:
+                shipping_id = single_shipping['id']
+                for track_num in single_shipping['tracking_numbers']:
+                    if track_num.startswith('JS'):
+                        tracking_urls = ['https://t.17track.net/en#nums=' + str(track_num)]
+                        print(tracking_urls)
+                        time.sleep(3)
+                        f_index = 0
+                        # 尝试修改重试最多3次
+                        while True:
+                            if f_index >= 3:
+                                break
+                            try:
+                                header = {'Content-Type': 'application/json; charset=utf-8',
+                                        'X-Shopify-Access-Token': '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'}
+                                data = {'fulfillment': {'tracking_urls': tracking_urls}}
+                                time.sleep(3)
+                                print(json.dumps(data))
+                                print(shipping_id)
+                                rr = requests.put('https://shopcider.myshopify.com/admin/api/2021-01/orders/{0}/fulfillments/{1}.json'.format(str(order_id), str(shipping_id)), data=json.dumps(data), headers=header, timeout=30)
+                                print('put success')
+                                print(rr.json())
+                                break
+                            except Exception as e:
+                                time.sleep(5)
+                                print(e)
+                                f_index += 1
+                                continue
+
+        if orders.headers is None:
+            break
+
+        if 'Link' in orders.headers:
+
+            url = orders.headers['Link'].split(';')[0].replace('>', '').replace('<', '') if 'next' in orders.headers[
+                'Link'].split(',')[0] else None
+            if url is None and len(orders.headers['Link'].split(',')) > 1:
+                url = orders.headers['Link'].split(',')[1].split(';')[0].replace('>', '').replace('<', '') if 'next' in orders.headers['Link'].split(',')[1] else None
+            print(url)
+            if url is not None:
+                order_url = 'https://cbc3e9686911d1cadbce71005e884660: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@shopcider.myshopify.com/admin/api/2020-10/orders.json?&' + urlparse(
+                    url).query
+            else:
+                break
+        else:
+            break
