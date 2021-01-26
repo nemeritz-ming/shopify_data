@@ -52,7 +52,7 @@ class FEISHU_CHAT_BOT(object):
         logging.debug('text类型：%s' % data)
         return self.post(data)
 
-    def send_post(self, msg, title, link):
+    def send_post(self, msg, title, link=""):
         """
         消息类型为post类型
         :param link: 内容链接
@@ -155,8 +155,8 @@ class FEISHU_CHAT_BOT(object):
 # test
 if __name__ == '__main__':
     feishu = FEISHU_CHAT_BOT()
-    # feishu.send_text("项目更新:飞书消息测试")
+    feishu.send_text("项目更新:飞书消息测试")
     # feishu.send_post(title='退货项目更新', msg='退货分析',
     # link="https://gzr917xylb.feishu.cn/sheets/shtcnWpjd4rpObS0EosYF1UumUh/")
-    feishu.send_card(titles='项目更新', msg='退货分析',
-                     link="https://gzr917xylb.feishu.cn/sheets/shtcnWpjd4rpObS0EosYF1UumUh/", link_title="详情请点击链接")
+    # feishu.send_card(titles='项目更新', msg='退货分析',
+    #                  link="https://gzr917xylb.feishu.cn/sheets/shtcnWpjd4rpObS0EosYF1UumUh/", link_title="详情请点击链接")
