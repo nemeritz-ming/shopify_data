@@ -73,6 +73,7 @@ while True:
                     except Exception as e:
                         time.sleep(3)
                         err = e
+                        modify_num += 1
                         continue
 
     url = orignal_url + '&sinceId=' + last_rma
