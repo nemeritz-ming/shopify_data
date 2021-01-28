@@ -6,7 +6,7 @@ from datetime import datetime, timedelta
 import datetime as dt
 import pytz
 from random import sample
-import pandas as pd
+
 
 def find_update_failed_info():
     # 获取当前时间(北京时间)
@@ -28,11 +28,10 @@ def find_update_failed_info():
     max_data = cstTimeMax.isoformat('T', 'seconds')
     print(min_data)
     print(max_data)
-    # class FEISHU_CHAT_BOT(object):
 
     shipping_status = ['shipped', 'partial']
     orders = None
-    error = {'orders_url_error': [], 'shipping_url_error': [], 'cannot_modify_id': []}
+    error = {'订单URL错误': [], '运输URL错误': [], '更新失败订单ID': []}
     error_info = ''
     for ship_status in shipping_status:
         # 获取更新时间为昨天的订单url
@@ -43,7 +42,7 @@ def find_update_failed_info():
             get_order_num = 0
             while True:
                 if get_order_num >= 5:
-                    error['orders_url_error'].append('URL:' + order_url + ' | error details:' + str(error_info))
+                    error['订单URL错误'].append('失败URL:' + order_url + '\n更新错误原因:' + str(error_info))
                     break
                 try:
                     time.sleep(3)
@@ -63,10 +62,11 @@ def find_update_failed_info():
                 shipping_url = 'https://cbc3e9686911d1cadbce71005e884660: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@shopcider.myshopify.com/admin/api/2021-01/orders/{}/fulfillments.json'.format(
                     str(order_id))
                 get_ship_num = 0
+                shipping = None
                 while True:
                     if get_ship_num >= 5:
-                        error['shipping_url_error'].append(
-                            'URL:' + shipping_url + ' | error details:' + str(error_info))
+                        error['运输URL错误'].append(
+                            '失败URL:' + shipping_url + '\n 更新错误原因:' + str(error_info))
                         break
                     try:
                         time.sleep(3)
@@ -78,7 +78,12 @@ def find_update_failed_info():
                         time.sleep(5)
                         get_ship_num += 1
                         continue
-                total_shipping = shipping.json()['fulfillments'] if 'fulfillments' in shipping.json() else []
+                if shipping is None:
+                    total_shipping = []
+                elif 'fulfillments' in shipping.json():
+                    total_shipping = shipping.json()['fulfillments']
+                else:
+                    total_shipping = []
                 for single_shipping in total_shipping:
                     shipping_id = single_shipping['id']
                     for track_num in single_shipping['tracking_numbers']:
@@ -90,8 +95,8 @@ def find_update_failed_info():
                             # 尝试修改重试最多3次
                             while True:
                                 if f_index >= 3:
-                                    error['cannot_modify_id'].append(
-                                        'order ID:' + str(order_id) + ' | error details:' + str(error_info))
+                                    error['更新失败订单ID'].append(
+                                        '订单ID:' + str(order_id) + ' \n 更新错误原因:' + str(error_info))
                                     break
                                 try:
                                     header = {'Content-Type': 'application/json; charset=utf-8',
@@ -115,11 +120,11 @@ def find_update_failed_info():
                 break
 
             if 'Link' in orders.headers:
-                url = orders.headers['Link'].split(';')[0].replace('>', '').replace('<', '')\
-                    if 'next' in orders.headers['Link'].split(',')[ 0] else None
+                url = orders.headers['Link'].split(';')[0].replace('>', '').replace('<', '') \
+                    if 'next' in orders.headers['Link'].split(',')[0] else None
                 if url is None and len(orders.headers['Link'].split(',')) > 1:
-                    url = orders.headers['Link'].split(',')[1].split(';')[0].replace('>', '').replace('<', '') if 'next' in \
-                    orders.headers[ 'Link'].split( ',')[1] else None
+                    url = orders.headers['Link'].split(',')[1].split(';')[0].replace('>', '').replace('<','') \
+                        if 'next' in orders.headers['Link'].split(',')[1] else None
                 print(url)
                 if url is not None:
                     order_url = 'https://cbc3e9686911d1cadbce71005e884660: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@shopcider.myshopify.com/admin/api/2020-10/orders.json?&' + urlparse(
@@ -129,5 +134,3 @@ def find_update_failed_info():
             else:
                 break
     return error
-
-

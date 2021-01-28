@@ -21,8 +21,12 @@ def not_null(content):
 
 # feishu chat bot class
 class FEISHU_CHAT_BOT(object):
+    """
+    class FEISHU_CHAT_BOT must contain key word in messages when sending
+    """
+
     web_hook = 'https://open.feishu.cn/open-apis/bot/v2/hook/d6b4ab6a-1258-4bc3-880c-0064f091bb9c'
-    key_word = '项目管理'
+    key_word = '项目更新'
 
     def __init__(self, website_hook=web_hook, keyword=key_word):
         """
@@ -44,7 +48,7 @@ class FEISHU_CHAT_BOT(object):
         """
         data = {"msg_type": "text"}
         if not_null(msg):  # 传入msg非空
-            data["content"] = {"text": "项目管理: " + msg}
+            data["content"] = {"text": self.key_word +"\n" + msg}
         else:
             logging.error("text类型的消息内容为空！")
             raise ValueError("text类型，消息内容不能为空！")
@@ -52,7 +56,7 @@ class FEISHU_CHAT_BOT(object):
         logging.debug('text类型：%s' % data)
         return self.post(data)
 
-    def send_post(self, msg, title, link=""):
+    def send_post(self, msg, title, link=''):
         """
         消息类型为post类型
         :param link: 内容链接
@@ -61,10 +65,15 @@ class FEISHU_CHAT_BOT(object):
         :return: 返回消息发送结果
         """
         data = {"msg_type": "post"}
-        if not_null(msg):
-            data["content"] = {"post": {"zh_cn": {"title": "{0} 项目管理".format(self.time), "content": [[
+        if not_null(msg) and link != '':
+            data["content"] = {"post": {"zh_cn": {"title": "{0} {1}".format(self.time, self.keyword), "content": [[
                 {"tag": "text", "text": title},
                 {"tag": "a", "text": "{0} 请查看".format(msg), "href": link}]]
+                                                  }}}
+        elif not_null(msg) and link == '':
+            data["content"] = {"post": {"zh_cn": {"title": "{0} {1}".format(self.time, self.keyword), "content": [[
+                {"tag": "text", "text": title},
+                {"tag": "text", "text": "{0}".format(msg)}]]
                                                   }}}
         else:
             logging.error("post类型的消息内容为空！")
@@ -156,7 +165,7 @@ class FEISHU_CHAT_BOT(object):
 if __name__ == '__main__':
     feishu = FEISHU_CHAT_BOT()
     feishu.send_text("项目更新:飞书消息测试")
-    # feishu.send_post(title='退货项目更新', msg='退货分析',
-    # link="https://gzr917xylb.feishu.cn/sheets/shtcnWpjd4rpObS0EosYF1UumUh/")
+    feishu.send_post(title='退货项目更新', msg='退货分析',
+    link="https://gzr917xylb.feishu.cn/sheets/shtcnWpjd4rpObS0EosYF1UumUh/")
     # feishu.send_card(titles='项目更新', msg='退货分析',
     #                  link="https://gzr917xylb.feishu.cn/sheets/shtcnWpjd4rpObS0EosYF1UumUh/", link_title="详情请点击链接")
