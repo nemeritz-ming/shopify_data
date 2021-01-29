@@ -34,7 +34,8 @@ def refund_update_failed_id_job():
     bot.send_post(msg=msg, title='退货状态更新信息:\n')
 
 if __name__ == '__main__':
-    logistics_update_failed_id_job()
+    refund_update_failed_id_job()
+    # logistics_update_failed_id_job()
 
 # schedule.every().day.at("16:30").do(logistics_update_failed_id_job)
 # while True:

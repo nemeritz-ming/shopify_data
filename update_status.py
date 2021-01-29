@@ -18,41 +18,39 @@ def update_refund_status():
     original_url = 'https://api.richcommerce.co/2020-05-25/returns?limit=40&order=ASC'
     url = 'https://api.richcommerce.co/2020-05-25/returns?limit=40&order=ASC'
     post_url = 'https://api.richcommerce.co/2020-05-25/returns/'
+
     # set time
     cur_date = datetime.utcnow().replace(tzinfo=pytz.utc)
     localDatetime = cur_date.astimezone(pytz.timezone('Asia/Shanghai'))
 
     # 需要更新的时间应该是北京时间的前5天以前
-    updated_at = localDatetime - timedelta(days=5)
+    updated_at = localDatetime - timedelta(days=6)
 
     # 设置更新时间的范围
-    Min = dt.datetime(updated_at.year, updated_at.month, updated_at.day)
+    Max = dt.datetime(updated_at.year, updated_at.month, updated_at.day)
+    createdAtMin = '2020-08-01'
+    createdAtMax = str(Max.date())
+    print(createdAtMin)
+    print(createdAtMax)
 
-    # 设置时区
-    tzObject = dt.timezone(dt.timedelta(hours=0), name="CST")
-
-    # 改为ISO 8601 时间格式
-    cstTime = Min.replace(tzinfo=tzObject)
-    min_data = cstTime.isoformat('T', 'seconds')
-    print(min_data)
 
     # set result list and error list
     error_list = {'url_error': [], 'update_failed_id': [], 'update_success_id': []}
     err = ''
 
     # set time constraint and status
-    createdAtMax = str(Min.date())
     status = 'Pending'
-    print(createdAtMax)
+    url = url + '&status=' + status + '&createdAtMin=' + createdAtMin + '&createdAtMax=' + createdAtMax
+    original_url = original_url + '&status=' + status + '&createdAtMin=' + createdAtMin + '&createdAtMax=' + createdAtMax
     while True:
         result = []
         get_num = 0
         while True:
+            # 尝试3次get url
             if get_num > 3:
-                error_list['url_error'].append('wrong_get_url: ' + url + 'error_info: '+ str(err))
+                error_list['url_error'].append('wrong_get_url: ' + url + 'error_info: ' + str(err))
                 break
             try:
-                url = url + '&createdAtMax=' + createdAtMax + '&status=' + status
                 r = requests.get(url, headers=header)
                 result = r.json()['returns']
                 break
@@ -69,6 +67,7 @@ def update_refund_status():
             modify_num = 0
             while True:
                 if modify_num > 3:
+                    # 尝试3次修改退货状态
                     error_list['update_failed_id'].append(
                         'Failed_order_id:' + refund['orderId'] + '| error_info: ' + str(err))
                     break
@@ -85,7 +84,7 @@ def update_refund_status():
                     err = e
                     modify_num += 1
                     continue
-
+        # 翻页
         url = original_url + '&sinceId=' + last_rma
         time.sleep(3)
     return error_list
