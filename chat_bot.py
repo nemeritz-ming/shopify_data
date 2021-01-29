@@ -1,43 +1,36 @@
-import FEISHU_CHAT_BOT
-import update_status
 import time
 import schedule
-import test
+import FEISHU_CHAT_BOT
 
 
-# set time schedule
-bot = FEISHU_CHAT_BOT.FEISHU_CHAT_BOT()
+def send_message_job(title, text, send_time=False):
+    """
+    this is the function that sends message using fei_shu chat bot
+    :param send_time: if it is true then send message at 16:00 every day else then send right now (boolean)
+    :param title: project title (string)
+    :param text: message or info about the project need to send (dict),
+    example : text = {attribute 1:[val1, val2, val3], attribute 2:[str1, str2, str3], ......})
+    """
+    # import fei_shu chat bot
+    bot = FEISHU_CHAT_BOT.FEISHU_CHAT_BOT()
+    txt = ""
 
+    # read the content into txt
+    for keys in text:
+        if text[keys]:
+            txt += keys + '\n'
+            for val in text[keys]:
+                txt += '\t' + str(val) + '\n'
+    if txt == "":
+        txt += '无更新失败'
 
-def logistics_update_failed_id_job():
-    res = test.find_update_failed_info()
-    text = ""
-    for keys in res:
-        if res[keys]:
-            text += keys + '\n'
-            for val in res[keys]:
-                text += '\t' + str(val) + '\n'
-    if text == "":
-        text += '无物流更新失败信息'
-    bot.send_post(msg = text, title='物流更新信息:\n')
+    def send_job():
+        bot.send_post(msg=txt, title='{0}:\n'.format(title))
 
-def refund_update_failed_id_job():
-    res = update_status.update_refund_status()
-    msg = ""
-    for keys in res:
-        if res[keys]:
-            msg += keys + '\n'
-            for val in res[keys]:
-                msg += '\t' + str(val) + '\n'
-    if msg == "":
-        msg += '无状态更新失败信息'
-    bot.send_post(msg=msg, title='退货状态更新信息:\n')
-
-if __name__ == '__main__':
-    refund_update_failed_id_job()
-    # logistics_update_failed_id_job()
-
-# schedule.every().day.at("16:30").do(logistics_update_failed_id_job)
-# while True:
-#     schedule.run_pending()
-#     time.sleep(1)
+    if send_time:
+        schedule.every().day.at('16:00').do(send_job)
+        while True:
+            schedule.run_pending()
+            time.sleep(1)
+    else:
+        send_job()

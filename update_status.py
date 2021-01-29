@@ -3,23 +3,25 @@ import time
 import datetime as dt
 from _datetime import datetime, timedelta
 import pytz
+import chat_bot
 
 
 def update_refund_status():
     """
     this is the function to update the pending refund status over the periods from 2020-08-01 to
     5 days before today
-    :return: a dictionary store all error info
+    :return: a dictionary storing all error info
     """
-    # set header
+
+    # 设置header
     header = {'Authorization': 'RichReturnsToken a21357fb-db8a-4f22-a81b-45a58802a7f4',
               'content-type': 'application/json'}
-    # set url
+    # 设置url
     original_url = 'https://api.richcommerce.co/2020-05-25/returns?limit=40&order=ASC'
     url = 'https://api.richcommerce.co/2020-05-25/returns?limit=40&order=ASC'
     post_url = 'https://api.richcommerce.co/2020-05-25/returns/'
 
-    # set time
+    # 设置时间
     cur_date = datetime.utcnow().replace(tzinfo=pytz.utc)
     localDatetime = cur_date.astimezone(pytz.timezone('Asia/Shanghai'))
 
@@ -33,25 +35,26 @@ def update_refund_status():
     print(createdAtMin)
     print(createdAtMax)
 
-
-    # set result list and error list
-    error_list = {'url_error': [], 'update_failed_id': [], 'update_success_id': []}
+    # 设置error_list储存错误信息
+    error_list = {'URL错误': [], '更新失败订单id': [], '更新成功订单id': []}
     err = ''
 
-    # set time constraint and status
+    # 设置退货时间和状态筛选需求
     status = 'Pending'
-    url = url + '&status=' + status + '&createdAtMin=' + createdAtMin + '&createdAtMax=' + createdAtMax
-    original_url = original_url + '&status=' + status + '&createdAtMin=' + createdAtMin + '&createdAtMax=' + createdAtMax
+    url += '&status=' + status + '&createdAtMin=' + createdAtMin + '&createdAtMax=' + createdAtMax
+    original_url += '&status=' + status + '&createdAtMin=' + createdAtMin + '&createdAtMax=' + createdAtMax
     while True:
         result = []
         get_num = 0
         while True:
-            # 尝试3次get url
+            # 尝试3次获取订单，
             if get_num > 3:
-                error_list['url_error'].append('wrong_get_url: ' + url + 'error_info: ' + str(err))
+                error_list['URL错误'].append('错误的url: ' + url + '错误详情: ' + str(err))
                 break
             try:
+                # 尝试获取40个满足条件订单
                 r = requests.get(url, headers=header)
+                # 获取退货信息
                 result = r.json()['returns']
                 break
             except Exception as e:
@@ -59,27 +62,33 @@ def update_refund_status():
                 time.sleep(3)
                 get_num += 1
                 continue
-        if result == []:
+        if not result:
             break
         last_rma = ''
         for refund in result:
+            # 获取rma订单
             last_rma = refund['rma']
             modify_num = 0
             while True:
+
+                # 对于修改失败的退货订单，尝试3次修改退货状态，如若不行加入到错误信息列表
                 if modify_num > 3:
-                    # 尝试3次修改退货状态
-                    error_list['update_failed_id'].append(
-                        'Failed_order_id:' + refund['orderId'] + '| error_info: ' + str(err))
+                    error_list['更新失败订单id'].append(
+                        '订单id:' + refund['orderId'] + ' | 错误详情: ' + str(err))
                     break
                 try:
                     print(last_rma + "｜" + refund['orderId'] + "|" + refund['createdAt'] + "｜" + refund['status'])
-                    # response = requests.post(post_url + last_rma + '/approve', headers=header)
-                    # if response.json()['status'] == 'success':
-                    #     error_list['update_success_id'].append('Success_order_id:' + refund['orderId'])
-                    # else:
-                    #     error_list['update_failed_id'].append('Failed_order_id:' + refund['orderId'])
+                    # 尝试修改退货状态
+                    time.sleep(3)
+                    response = requests.post(post_url + last_rma + '/approve', headers=header)
+                    # 判断是否修改成功
+                    if response.json()['status'] == 'success':
+                        error_list['更新成功订单id'].append('订单id:' + refund['orderId'])
+                    else:
+                        error_list['更新失败订单id'].append('订单id:' + refund['orderId'])
                     break
                 except Exception as e:
+                    print(e)
                     time.sleep(3)
                     err = e
                     modify_num += 1
@@ -90,8 +99,8 @@ def update_refund_status():
     return error_list
 
 
-update_refund_status()
-# # test
-# last_rma = 'RMA-2682492285110'
-# response = requests.post(post_url + last_rma + '/approve', headers=header)
-# print(response.json()['status'])
+if __name__ == '__main__':
+    text = update_refund_status()
+    title = '退货状态更新测试'
+    send_time = False
+    chat_bot.send_message_job(title=title, text=text, send_time=send_time)
