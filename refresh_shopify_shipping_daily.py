@@ -29,6 +29,7 @@ print(max_data)
 shipping_status = ['shipped', 'partial']
 orders = None
 for ship_status in shipping_status:
+    # 获取更新时间为昨天的订单url
     order_url = 'https://cbc3e9686911d1cadbce71005e884660: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@shopcider.myshopify.com/admin/api/2020-10/orders.json?fulfillment_status={0}&status=any&created_at_min={1}&created_at_max={2}&limit=10'.format(ship_status, min_data, max_data)
     print(order_url)
     while True:
@@ -84,9 +85,9 @@ for ship_status in shipping_status:
                                 time.sleep(3)
                                 print(json.dumps(data))
                                 print(shipping_id)
-                                rr = requests.put('https://shopcider.myshopify.com/admin/api/2021-01/orders/{0}/fulfillments/{1}.json'.format(str(order_id), str(shipping_id)), data=json.dumps(data), headers=header, timeout=30)
+                                # rr = requests.put('https://shopcider.myshopify.com/admin/api/2021-01/orders/{0}/fulfillments/{1}.json'.format(str(order_id), str(shipping_id)), data=json.dumps(data), headers=header, timeout=30)
                                 print('put success')
-                                print(rr.json())
+                                # print(rr.json())
                                 break
                             except Exception as e:
                                 time.sleep(5)
@@ -98,7 +99,6 @@ for ship_status in shipping_status:
             break
 
         if 'Link' in orders.headers:
-
             url = orders.headers['Link'].split(';')[0].replace('>', '').replace('<', '') if 'next' in orders.headers[
                 'Link'].split(',')[0] else None
             if url is None and len(orders.headers['Link'].split(',')) > 1:
